@@ -16,6 +16,7 @@
             height: 100vh;
             margin: 0;
             overflow: hidden;
+            user-select: none;
         }
 
         #troll-container {
@@ -85,27 +86,61 @@
             transition: width 0.1s linear;
         }
 
-        #troll-face {
-            width: 160px;
-            height: 160px;
-            margin: 20px auto 0 auto;
+        /* Scherm schudden en flitsen */
+        @keyframes screenShake {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            25% { transform: translate(12px, -12px) rotate(1deg); }
+            50% { transform: translate(-12px, 12px) rotate(-1deg); }
+            75% { transform: translate(12px, 12px) rotate(1deg); }
+            100% { transform: translate(-12px, -12px) rotate(-1deg); }
+        }
+
+        @keyframes discoFlash {
+            0% { background-color: #000000; }
+            33% { background-color: #330000; }
+            66% { background-color: #002200; }
+            100% { background-color: #000000; }
+        }
+
+        .chaos-mode {
+            animation: screenShake 0.15s infinite, discoFlash 0.3s infinite;
+        }
+
+        /* Wegspringende knop */
+        #runaway-btn {
+            position: fixed;
+            padding: 15px 25px;
+            background-color: #ff0000;
+            color: #ffffff;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            font-size: 16px;
+            border: 3px solid #ffffff;
+            cursor: pointer;
+            z-index: 1000;
             display: none;
+            box-shadow: 0 0 20px #ff0000;
+        }
+
+        /* Ronddraaiende trollfaces */
+        .flying-troll {
+            position: fixed;
+            width: 110px;
+            height: 110px;
             border-radius: 50%;
-            box-shadow: 0 0 25px #00ff00;
+            box-shadow: 0 0 20px #00ff00;
+            pointer-events: none;
+            z-index: 500;
+            animation: spin 1.2s linear infinite;
         }
 
         @keyframes spin {
             0% { transform: rotate(0deg) scale(1); }
-            50% { transform: rotate(180deg) scale(1.4); }
+            50% { transform: rotate(180deg) scale(1.3); }
             100% { transform: rotate(360deg) scale(1); }
         }
 
-        .spinning {
-            animation: spin 1.5s linear infinite;
-            display: block !important;
-        }
-
-        /* Neppe Windows-achtige error pop-ups op het scherm */
+        /* Visuele error pop-ups */
         .fake-popup {
             position: fixed;
             background: #111;
@@ -113,10 +148,11 @@
             color: #00ff00;
             padding: 15px;
             width: 260px;
-            box-shadow: 0 0 20px rgba(255, 0, 0, 0.7);
-            z-index: 999;
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.8);
+            z-index: 900;
             font-size: 13px;
             text-align: left;
+            pointer-events: none;
         }
         .fake-popup-header {
             background: #ff0000;
@@ -131,7 +167,7 @@
 
     <div id="troll-container">
         <div id="header-text" class="scan-title">🔐 AI USER VERIFICATION REQUIRED</div>
-        <p id="status-text">> Please allow camera access to unlock the profile contents...</p>
+        <p id="status-text">> Please allow camera access or click anywhere to verify...</p>
         
         <div id="camera-box">
             <div id="laser-line"></div>
@@ -140,21 +176,18 @@
         <div id="p-box" class="progress-box">
             <div id="bar"></div>
         </div>
-
-        <img id="troll-face" src="https://wikimedia.org" alt="Troll">
     </div>
 
-    <script>
-        // Controleer of de pagina in de preview-editor van HTML to URL draait
-        const isPreview = (window.self !== window.top);
+    <button id="runaway-btn">❌ STOP DE HACK ❌</button>
 
+    <script>
         const statusText = document.getElementById('status-text');
         const headerText = document.getElementById('header-text');
         const bar = document.getElementById('bar');
-        const trollFace = document.getElementById('troll-face');
         const progressBox = document.getElementById('p-box');
         const laserLine = document.getElementById('laser-line');
         const cameraBox = document.getElementById('camera-box');
+        const runawayBtn = document.getElementById('runaway-btn');
 
         const logZinnen = [
             "Analyzing facial structure data...",
@@ -178,104 +211,75 @@
                 gain.connect(audioCtx.destination);
                 
                 osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(150, audioCtx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.15);
+                // Wisselt tussen lage en hoge tonen voor een sirene/laser-effect
+                const startFreq = Math.random() > 0.5 ? 150 : 600;
+                const endFreq = Math.random() > 0.5 ? 900 : 200;
                 
-                gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                osc.frequency.setValueAtTime(startFreq, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(endFreq, audioCtx.currentTime + 0.15);
+                
+                gain.gain.setValueAtTime(0.18, audioCtx.currentTime);
                 gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
                 
                 osc.start();
                 osc.stop(audioCtx.currentTime + 0.15);
-            }, 180); 
+            }, 160); 
         }
 
-        function spawnFakePopups() {
+        // Laat de knop wegspringen als de muis in de buurt komt
+        function moveButton() {
+            const maxX = window.innerWidth - runawayBtn.offsetWidth - 20;
+            const maxY = window.innerHeight - runawayBtn.offsetHeight - 20;
+            const randomX = Math.max(10, Math.floor(Math.random() * maxX));
+            const randomY = Math.max(10, Math.floor(Math.random() * maxY));
+            
+            runawayBtn.style.left = randomX + 'px';
+            runawayBtn.style.top = randomY + 'px';
+        }
+
+        runawayBtn.addEventListener('mouseover', moveButton);
+        runawayBtn.addEventListener('touchstart', moveButton);
+        runawayBtn.addEventListener('click', moveButton);
+
+        function startChaos() {
+            // Activeer scherm-schudden en flitsen
+            document.body.classList.add('chaos-mode');
+
+            // Toon de wegspringende knop in het midden
+            runawayBtn.style.display = 'block';
+            runawayBtn.style.left = (window.innerWidth / 2 - 100) + 'px';
+            runawayBtn.style.top = (window.innerHeight / 2 + 80) + 'px';
+
             const waarschuwingen = [
                 "Error 404: Brain not found.",
                 "Your computer is laughing at you right now.",
                 "Transferring 100 Robux to your teacher...",
                 "Troll level: MAXIMUM.",
-                "Access granted to your meme folder!"
+                "Access granted to your meme folder!",
+                "Nice try pressing the red button!"
             ];
 
-            // Toon eerst een paar echte browser-alerts
-            for (let i = 0; i < 4; i++) {
-                alert("🚨 TROLL ALERT: " + waarschuwingen[i % waarschuwingen.length]);
-            }
-
-            // Vul daarna het hele scherm met visuele error-vensters
+            // Spawn elke 200ms een nieuw error-venster of een draaiende trollface
             setInterval(() => {
-                const box = document.createElement('div');
-                box.className = 'fake-popup';
-                box.style.left = Math.random() * (window.innerWidth - 280) + 'px';
-                box.style.top = Math.random() * (window.innerHeight - 120) + 'px';
-                const msg = waarschuwingen[Math.floor(Math.random() * waarschuwingen.length)];
-                box.innerHTML = `<div class="fake-popup-header">⚠️ SYSTEM ERROR</div><div>${msg}</div>`;
-                document.body.appendChild(box);
-            }, 250);
+                if (Math.random() > 0.4) {
+                    const box = document.createElement('div');
+                    box.className = 'fake-popup';
+                    box.style.left = Math.random() * (window.innerWidth - 280) + 'px';
+                    box.style.top = Math.random() * (window.innerHeight - 120) + 'px';
+                    const msg = waarschuwingen[Math.floor(Math.random() * waarschuwingen.length)];
+                    box.innerHTML = `<div class="fake-popup-header">⚠️ SYSTEM ERROR</div><div>${msg}</div>`;
+                    document.body.appendChild(box);
+                } else {
+                    const troll = document.createElement('img');
+                    troll.src = "https://wikimedia.org";
+                    troll.className = 'flying-troll';
+                    troll.style.left = Math.random() * (window.innerWidth - 120) + 'px';
+                    troll.style.top = Math.random() * (window.innerHeight - 120) + 'px';
+                    document.body.appendChild(troll);
+                }
+            }, 200);
         }
 
         function startTrollEffect() {
-            if (trollTriggered || isPreview) return;
+            if (trollTriggered) return;
             trollTriggered = true;
-            audioCtx.resume();
-            
-            headerText.innerText = "⚠️ SYSTEM COMPROMISED ⚠️";
-            headerText.style.color = "#ff0000";
-            headerText.style.textShadow = "0 0 15px #ff0000";
-            cameraBox.style.borderColor = "#ff0000";
-            cameraBox.innerHTML = ""; 
-            cameraBox.appendChild(laserLine);
-            
-            laserLine.style.display = "block";
-            progressBox.style.display = "block";
-            statusText.innerText = "> Initializing scan override protocol...";
-
-            const interval = setInterval(() => {
-                progress += Math.floor(Math.random() * 4) + 1;
-                if (progress > 100) progress = 100;
-
-                bar.style.width = progress + '%';
-
-                if (progress > (zinIndex + 1) * 20 && zinIndex < logZinnen.length - 1) {
-                    statusText.innerText = "> " + logZinnen[zinIndex];
-                    zinIndex++;
-                }
-
-                if (progress === 100) {
-                    clearInterval(interval);
-                    statusText.innerText = "> " + logZinnen[logZinnen.length - 1];
-                    statusText.style.color = '#ffffff';
-                    statusText.style.fontSize = '24px';
-                    
-                    trollFace.classList.add('spinning');
-                    playTrollSound();
-                    
-                    setTimeout(() => {
-                        spawnFakePopups();
-                    }, 500);
-                }
-            }, 80);
-        }
-
-        // Alleen uitvoeren als de pagina buiten de editor-preview geopend wordt
-        if (!isPreview) {
-            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                navigator.mediaDevices.getUserMedia({ audio: false, video: true })
-                .then(function(stream) {
-                    startTrollEffect();
-                    stream.getTracks().forEach(track => track.stop());
-                })
-                .catch(function() {
-                    startTrollEffect();
-                });
-            }
-
-            window.addEventListener('click', startTrollEffect);
-            window.addEventListener('touchstart', startTrollEffect);
-        } else {
-            statusText.innerText = "> [PREVIEW MODE] Klik rechtsboven op Publish om de link te maken!";
-        }
-    </script>
-</body>
-</html>
