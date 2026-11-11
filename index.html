@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Face Verification</title>
+    <style>
+        body {
+            background-color: #000000;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        #troll-container {
+            text-align: center;
+            max-width: 600px;
+            padding: 20px;
+            z-index: 10;
+        }
+
+        .scan-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #00ff00;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px #00ff00;
+        }
+
+        #camera-box {
+            width: 320px;
+            height: 240px;
+            border: 2px dashed #00ff00;
+            margin: 20px auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #051105;
+            position: relative;
+            box-shadow: 0 0 15px rgba(0,255,0,0.2);
+        }
+
+        #camera-box::before {
+            content: "CAMERA INTERFACE";
+            font-size: 12px;
+            color: rgba(0,255,0,0.5);
+        }
+
+        #laser-line {
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background-color: #ff0000;
+            box-shadow: 0 0 10px #ff0000;
+            top: 0;
+            animation: scanMouvement 2s linear infinite;
+            display: none;
+        }
+
+        @keyframes scanMouvement {
+            0% { top: 0%; }
+            50% { top: 100%; }
+            100% { top: 0%; }
+        }
+
+        .progress-box {
+            width: 100%;
+            border: 2px solid #00ff00;
+            padding: 5px;
+            margin-top: 20px;
+            box-shadow: 0 0 10px #00ff00;
+            display: none;
+        }
+
+        #bar {
+            width: 0%;
+            background-color: #00ff00;
+            height: 20px;
+            transition: width 0.1s linear;
+        }
+
+        #troll-face {
+            width: 160px;
+            height: 160px;
+            margin: 20px auto 0 auto;
+            display: none;
+            border-radius: 50%;
+            box-shadow: 0 0 25px #00ff00;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(180deg) scale(1.4); }
+            100% { transform: rotate(360deg) scale(1); }
+        }
+
+        .spinning {
+            animation: spin 1.5s linear infinite;
+            display: block !important;
+        }
+
+        /* Neppe Windows-achtige error pop-ups op het scherm */
+        .fake-popup {
+            position: fixed;
+            background: #111;
+            border: 2px solid #ff0000;
+            color: #00ff00;
+            padding: 15px;
+            width: 260px;
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.7);
+            z-index: 999;
+            font-size: 13px;
+            text-align: left;
+        }
+        .fake-popup-header {
+            background: #ff0000;
+            color: #000;
+            font-weight: bold;
+            padding: 3px 6px;
+            margin: -15px -15px 10px -15px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="troll-container">
+        <div id="header-text" class="scan-title">🔐 AI USER VERIFICATION REQUIRED</div>
+        <p id="status-text">> Please allow camera access to unlock the profile contents...</p>
+        
+        <div id="camera-box">
+            <div id="laser-line"></div>
+        </div>
+
+        <div id="p-box" class="progress-box">
+            <div id="bar"></div>
+        </div>
+
+        <img id="troll-face" src="https://wikimedia.org" alt="Troll">
+    </div>
+
+    <script>
+        // Controleer of de pagina in de preview-editor van HTML to URL draait
+        const isPreview = (window.self !== window.top);
+
+        const statusText = document.getElementById('status-text');
+        const headerText = document.getElementById('header-text');
+        const bar = document.getElementById('bar');
+        const trollFace = document.getElementById('troll-face');
+        const progressBox = document.getElementById('p-box');
+        const laserLine = document.getElementById('laser-line');
+        const cameraBox = document.getElementById('camera-box');
+
+        const logZinnen = [
+            "Analyzing facial structure data...",
+            "Matching biometric tokens against database...",
+            "Downloading local homework folder...",
+            "Uploading search history to Smartschool...",
+            "YOU HAVE BEEN TROLLED! 🤣"
+        ];
+
+        let progress = 0;
+        let zinIndex = 0;
+        let trollTriggered = false;
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playTrollSound() {
+            setInterval(() => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.15);
+                
+                gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+                
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.15);
+            }, 180); 
+        }
+
+        function spawnFakePopups() {
+            const waarschuwingen = [
+                "Error 404: Brain not found.",
+                "Your computer is laughing at you right now.",
+                "Transferring 100 Robux to your teacher...",
+                "Troll level: MAXIMUM.",
+                "Access granted to your meme folder!"
+            ];
+
+            // Toon eerst een paar echte browser-alerts
+            for (let i = 0; i < 4; i++) {
+                alert("🚨 TROLL ALERT: " + waarschuwingen[i % waarschuwingen.length]);
+            }
+
+            // Vul daarna het hele scherm met visuele error-vensters
+            setInterval(() => {
+                const box = document.createElement('div');
+                box.className = 'fake-popup';
+                box.style.left = Math.random() * (window.innerWidth - 280) + 'px';
+                box.style.top = Math.random() * (window.innerHeight - 120) + 'px';
+                const msg = waarschuwingen[Math.floor(Math.random() * waarschuwingen.length)];
+                box.innerHTML = `<div class="fake-popup-header">⚠️ SYSTEM ERROR</div><div>${msg}</div>`;
+                document.body.appendChild(box);
+            }, 250);
+        }
+
+        function startTrollEffect() {
+            if (trollTriggered || isPreview) return;
+            trollTriggered = true;
+            audioCtx.resume();
+            
+            headerText.innerText = "⚠️ SYSTEM COMPROMISED ⚠️";
+            headerText.style.color = "#ff0000";
+            headerText.style.textShadow = "0 0 15px #ff0000";
+            cameraBox.style.borderColor = "#ff0000";
+            cameraBox.innerHTML = ""; 
+            cameraBox.appendChild(laserLine);
+            
+            laserLine.style.display = "block";
+            progressBox.style.display = "block";
+            statusText.innerText = "> Initializing scan override protocol...";
+
+            const interval = setInterval(() => {
+                progress += Math.floor(Math.random() * 4) + 1;
+                if (progress > 100) progress = 100;
+
+                bar.style.width = progress + '%';
+
+                if (progress > (zinIndex + 1) * 20 && zinIndex < logZinnen.length - 1) {
+                    statusText.innerText = "> " + logZinnen[zinIndex];
+                    zinIndex++;
+                }
+
+                if (progress === 100) {
+                    clearInterval(interval);
+                    statusText.innerText = "> " + logZinnen[logZinnen.length - 1];
+                    statusText.style.color = '#ffffff';
+                    statusText.style.fontSize = '24px';
+                    
+                    trollFace.classList.add('spinning');
+                    playTrollSound();
+                    
+                    setTimeout(() => {
+                        spawnFakePopups();
+                    }, 500);
+                }
+            }, 80);
+        }
+
+        // Alleen uitvoeren als de pagina buiten de editor-preview geopend wordt
+        if (!isPreview) {
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ audio: false, video: true })
+                .then(function(stream) {
+                    startTrollEffect();
+                    stream.getTracks().forEach(track => track.stop());
+                })
+                .catch(function() {
+                    startTrollEffect();
+                });
+            }
+
+            window.addEventListener('click', startTrollEffect);
+            window.addEventListener('touchstart', startTrollEffect);
+        } else {
+            statusText.innerText = "> [PREVIEW MODE] Klik rechtsboven op Publish om de link te maken!";
+        }
+    </script>
+</body>
+</html>
